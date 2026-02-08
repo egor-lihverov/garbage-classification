@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trash Classification - Image Prediction</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .upload-area {
+            padding: 40px;
+            text-align: center;
+            border: 3px dashed #ddd;
+            margin: 30px;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #f9f9f9;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #e8edff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 80px;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.3em;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .upload-subtext {
+            font-size: 0.95em;
+            color: #666;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 30px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.2s ease;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .upload-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .preview-container {
+            display: none;
+            padding: 30px;
+            margin: 30px;
+            background: #f9f9f9;
+            border-radius: 15px;
+        }
+
+        .preview-container.active {
+            display: block;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .preview-title {
+            font-size: 1.4em;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .clear-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: background 0.2s ease;
+        }
+
+        .clear-btn:hover {
+            background: #ff5252;
+        }
+
+        .image-preview {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .predict-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 50px;
+            font-size: 1.2em;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .predict-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .predict-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+            padding: 30px;
+            margin: 30px;
+            background: #f9f9f9;
+            border-radius: 15px;
+        }
+
+        .results.active {
+            display: block;
+        }
+
+        .result-title {
+            font-size: 1.4em;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .main-prediction {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .prediction-class {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .confidence {
+            font-size: 1.3em;
+            opacity: 0.9;
+        }
+
+        .all-predictions {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .prediction-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            transition: background 0.2s ease;
+        }
+
+        .prediction-item:hover {
+            background: #f8f9fa;
+        }
+
+        .prediction-item:last-child {
+            border-bottom: none;
+        }
+
+        .prediction-item.winner {
+            background: #e8edff;
+            border-left: 4px solid #667eea;
+        }
+
+        .class-name {
+            flex: 1;
+            font-size: 1.1em;
+            color: #333;
+            text-transform: capitalize;
+            font-weight: 600;
+        }
+
+        .probability-bar {
+            flex: 2;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 0 15px;
+        }
+
+        .probability-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+
+        .probability-text {
+            font-size: 1.1em;
+            color: #333;
+            font-weight: 600;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .error {
+            display: none;
+            padding: 20px;
+            margin: 30px;
+            background: #fff3f3;
+            border: 2px solid #ff6b6b;
+            border-radius: 10px;
+            color: #d32f2f;
+            text-align: center;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .upload-text {
+                font-size: 1.1em;
+            }
+
+            .prediction-class {
+                font-size: 2em;
+            }
+
+            .probability-text {
+                min-width: 60px;
+                font-size: 0.95em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗑️ Trash Classification</h1>
+            <p>Upload, drag & drop, or paste an image to classify trash type</p>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📷</div>
+            <div class="upload-text">Drop your image here</div>
+            <div class="upload-subtext">or click to browse files, or press Ctrl+V to paste</div>
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">Choose Image</button>
+            <input type="file" id="fileInput" class="file-input" accept="image/*">
+        </div>
+
+        <div class="preview-container" id="previewContainer">
+            <div class="preview-header">
+                <div class="preview-title">Image Preview</div>
+                <button class="clear-btn" onclick="clearImage()">Clear</button>
+            </div>
+            <img id="imagePreview" class="image-preview" alt="Preview">
+            <button class="predict-btn" id="predictBtn" onclick="predict()">Classify Image</button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing image...</p>
+        </div>
+
+        <div class="results" id="results">
+            <div class="result-title">Classification Results</div>
+            <div class="main-prediction">
+                <div class="prediction-class" id="mainPrediction"></div>
+                <div class="confidence" id="mainConfidence"></div>
+            </div>
+            <div class="all-predictions" id="allPredictions"></div>
+        </div>
+
+        <div class="error" id="error"></div>
+    </div>
+
+    <script>
+        let currentImageData = null;
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const predictBtn = document.getElementById('predictBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const error = document.getElementById('error');
+
+        // Drag and drop handlers
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleImageFile(file);
+            }
+        });
+
+        // File input handler
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleImageFile(file);
+            }
+        });
+
+        // Paste handler
+        document.addEventListener('paste', (e) => {
+            const items = e.clipboardData.items;
+            for (let item of items) {
+                if (item.type.startsWith('image/')) {
+                    const file = item.getAsFile();
+                    handleImageFile(file);
+                    break;
+                }
+            }
+        });
+
+        function handleImageFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentImageData = e.target.result;
+                imagePreview.src = currentImageData;
+                uploadArea.style.display = 'none';
+                previewContainer.classList.add('active');
+                results.classList.remove('active');
+                error.classList.remove('active');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearImage() {
+            currentImageData = null;
+            imagePreview.src = '';
+            uploadArea.style.display = 'block';
+            previewContainer.classList.remove('active');
+            results.classList.remove('active');
+            error.classList.remove('active');
+            fileInput.value = '';
+        }
+
+        async function predict() {
+            if (!currentImageData) {
+                showError('No image to classify');
+                return;
+            }
+
+            loading.classList.add('active');
+            results.classList.remove('active');
+            error.classList.remove('active');
+            predictBtn.disabled = true;
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image_data: currentImageData
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayResults(data.result);
+                } else {
+                    showError(data.error || 'Prediction failed');
+                }
+            } catch (err) {
+                showError('Error communicating with server: ' + err.message);
+            } finally {
+                loading.classList.remove('active');
+                predictBtn.disabled = false;
+            }
+        }
+
+        function displayResults(result) {
+            // Main prediction
+            document.getElementById('mainPrediction').textContent = result.predicted_class.charAt(0).toUpperCase() + result.predicted_class.slice(1);
+            document.getElementById('mainConfidence').textContent = `Confidence: ${(result.confidence * 100).toFixed(2)}%`;
+
+            // All predictions
+            const allPredictionsDiv = document.getElementById('allPredictions');
+            allPredictionsDiv.innerHTML = '';
+
+            result.top_predictions.forEach((pred, index) => {
+                const item = document.createElement('div');
+                item.className = 'prediction-item' + (index === 0 ? ' winner' : '');
+                item.innerHTML = `
+                    <div class="class-name">${pred.class.charAt(0).toUpperCase() + pred.class.slice(1)}</div>
+                    <div class="probability-bar">
+                        <div class="probability-fill" style="width: ${pred.probability * 100}%"></div>
+                    </div>
+                    <div class="probability-text">${(pred.probability * 100).toFixed(2)}%</div>
+                `;
+                allPredictionsDiv.appendChild(item);
+            });
+
+            results.classList.add('active');
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.classList.add('active');
+        }
+    </script>
+</body>
+</html>
